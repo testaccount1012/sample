@@ -1,0 +1,93 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'apiJsonListview/appliance.dart';
+import 'package:flutter/material.dart';
+
+class JsonApiDropdown extends StatefulWidget {
+  @override
+  JsonApiDropdownState createState() {
+    return new JsonApiDropdownState();
+  }
+}
+
+class JsonApiDropdownState extends State<JsonApiDropdown> {
+  Appliance _currentUser;
+
+  final String uri = 'http://192.168.8.102:9004/kafka/aptype';
+
+  Future<List<Appliance>> _fetchUsers() async {
+    var response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final items = json.decode(response.body).cast<Map<String, dynamic>>();
+      List<Appliance> listOfUsers = items.map<Appliance>((json) {
+        return Appliance.fromJson(json);
+      }).toList();
+
+      return listOfUsers;
+    } else {
+      throw Exception('Failed to load internet');
+    }
+  }
+
+  onChange(Appliance selectedUser) {
+    setState(() {
+      _currentUser = selectedUser;
+    });
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Fetching data from JSON - DropdownButton'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: <Widget>[
+            FutureBuilder<List<Appliance>>(
+                future: _fetchUsers(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<Appliance>> snapshot) {
+                  if (!snapshot.hasData) return CircularProgressIndicator();
+                  return DropdownButton<Appliance>(
+                  //  value: _currentUser != null ? _currentUser : null,
+                    items: snapshot.data
+                        .map((user) => DropdownMenuItem<Appliance>(
+                      child: Text(user.type),
+                      value: user,
+                    ))
+                        .toList(),
+                    // value: _currentUser,
+//                    onChanged: (Appliance valuel) {
+//                      setState(() {
+//                        _currentUser = valuel;
+//                      });
+//                    },
+                   // isExpanded: false,
+//                     value: _currentUser,
+                    onChanged: onChange,
+                    isExpanded: false,
+                    //value: _currentUser,
+                    hint: _currentUser != null ? Text('${_currentUser.type}') : Text('select type'),
+                  );
+                }),
+            SizedBox(height: 20.0),
+            _currentUser != null
+                ? Text("id: " +
+                _currentUser.id.toString() +
+                "\n type: " +
+                _currentUser.type+
+                "\n  " )
+                : Text("No User selected"),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
